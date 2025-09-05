@@ -1,3 +1,5 @@
 // js/config.js
-// URL pública de tu API en Render
-window.API_BASE = 'https://colegio-el-progreso.onrender.com';
+// Back (Render)
+window.API_BASE   = 'https://colegio-el-progreso.onrender.com';
+// Front (Cloudflare Pages)
+window.FRONT_BASE = 'https://cccp-front.pages.dev';
