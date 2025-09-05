@@ -2,6 +2,9 @@
 const form = document.getElementById('loginForm');
 const errorBox = document.getElementById('error');
 
+// Normalizo la base (por si algún día lleva / al final)
+const API = (window.API_BASE || '').replace(/\/$/, '');
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   errorBox.textContent = '';
@@ -9,10 +12,10 @@ form.addEventListener('submit', async (e) => {
   const data = Object.fromEntries(new FormData(form).entries());
 
   try {
-    const res = await fetch('/api/login', {
+    const res = await fetch(`${API}/api/login`, {   // <-- usa API_BASE aquí
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',              // <<--- IMPORTANTE
+      credentials: 'include',                       // <-- imprescindible para cookies
       body: JSON.stringify(data)
     });
 
@@ -21,7 +24,9 @@ form.addEventListener('submit', async (e) => {
       errorBox.textContent = json.message || 'Error de autenticación';
       return;
     }
-    location.href = '/dashboard';
+
+    // 2) tras login, ve al backend para que él sirva /dashboard protegido
+    location.href = `${API}/dashboard`;
   } catch {
     errorBox.textContent = 'No se pudo conectar con el servidor';
   }
