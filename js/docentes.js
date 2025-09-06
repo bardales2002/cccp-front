@@ -1,4 +1,8 @@
-const API = '/api/docentes';
+// js/docentes.js
+
+// Base (desde js/config.js)
+const API_BASE = (window.API_BASE || '').replace(/\/$/, '');
+const DOCS_API = `${API_BASE}/api/docentes`;
 
 const form = document.getElementById("docenteForm");
 const editIndex = document.getElementById("editIndex");
@@ -22,8 +26,8 @@ const inputs = {
 let cache = [];
 
 async function fetchDocentes(q=''){
-  const url = q ? `${API}?q=${encodeURIComponent(q)}` : API;
-  const res = await fetch(url);
+  const url = q ? `${DOCS_API}?q=${encodeURIComponent(q)}` : DOCS_API;
+  const res = await fetch(url, { credentials:'include' });
   const json = await res.json();
   if(!json.ok) throw new Error(json.message || 'Error al cargar docentes');
   cache = json.data || [];
@@ -83,15 +87,17 @@ form.addEventListener("submit", async (e)=>{
   try {
     let res;
     if(!editCodigo){
-      res = await fetch(API, {
+      res = await fetch(DOCS_API, {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
+        credentials:'include',
         body: JSON.stringify(payload)
       });
     } else {
-      res = await fetch(`${API}/${encodeURIComponent(editCodigo)}`, {
+      res = await fetch(`${DOCS_API}/${encodeURIComponent(editCodigo)}`, {
         method: 'PUT',
         headers: {'Content-Type':'application/json'},
+        credentials:'include',
         body: JSON.stringify({
           nombres: payload.nombres,
           apellidos: payload.apellidos,
@@ -148,7 +154,10 @@ tbody.addEventListener("click", async (e)=>{
 
     if(confirm(`¿Eliminar a "${d.nombres} ${d.apellidos}"?`)){
       try{
-        const res = await fetch(`${API}/${encodeURIComponent(codigo)}`, { method: 'DELETE' });
+        const res = await fetch(`${DOCS_API}/${encodeURIComponent(codigo)}`, {
+          method: 'DELETE',
+          credentials:'include'
+        });
         const json = await res.json();
         if(!json.ok) throw new Error(json.message || 'Error al eliminar');
         await load(buscar.value);
@@ -159,9 +168,7 @@ tbody.addEventListener("click", async (e)=>{
   }
 });
 
-buscar.addEventListener("input", ()=>{
-  load(buscar.value);
-});
+buscar.addEventListener("input", ()=> load(buscar.value));
 
 btnPdf.addEventListener("click", ()=>{
   const { jsPDF } = window.jspdf;

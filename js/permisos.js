@@ -1,6 +1,10 @@
-const API_PERMISOS = '/api/permisos';
-const API_DOC_MIN  = '/api/docentes/min';
-const API_ME       = '/api/me';
+// js/permisos.js
+
+// === Base de API (de js/config.js) ===
+const API_BASE     = (window.API_BASE || '').replace(/\/$/, '');
+const API_PERMISOS = `${API_BASE}/api/permisos`;
+const API_DOC_MIN  = `${API_BASE}/api/docentes/min`;
+const API_ME       = `${API_BASE}/api/me`;
 
 const toggleCard   = document.getElementById('toggleCard');
 const btnToggle    = document.getElementById('btnToggleForm');
@@ -59,7 +63,7 @@ const badge = (estado) => {
 
 /* ====== Cargar docentes (select y filtro) ====== */
 async function loadDocentes(){
-  const res = await fetch(API_DOC_MIN);
+  const res = await fetch(API_DOC_MIN, { credentials: 'include' });
   const list = await res.json();
 
   selDocente.innerHTML = '<option value="">Seleccione…</option>';
@@ -81,7 +85,8 @@ async function loadDocentes(){
 
 /* ====== Roles y UI ====== */
 async function setRoleUI(){
-  const me = await fetch(API_ME).then(r=>r.json()).catch(()=>({ok:false}));
+  const me = await fetch(API_ME, { credentials: 'include' })
+              .then(r=>r.json()).catch(()=>({ok:false}));
   currentRole = me?.user?.role || 'user';
 
   if (currentRole === 'admin'){
@@ -128,6 +133,7 @@ frmPermiso?.addEventListener('submit', async (e)=>{
   const res = await fetch(API_PERMISOS, {
     method:'POST',
     headers:{ 'Content-Type':'application/json' },
+    credentials:'include',
     body: JSON.stringify({ docente_codigo, tipo, fecha_desde, fecha_hasta, observaciones })
   });
   const json = await res.json();
@@ -150,7 +156,9 @@ async function fetchList(){
   }
   if (buscar.value.trim()) params.set('q', buscar.value.trim());
 
-  const res = await fetch(`${API_PERMISOS}?${params.toString()}`);
+  const res = await fetch(`${API_PERMISOS}?${params.toString()}`, {
+    credentials:'include'
+  });
   const data = await res.json();
   cache = data || [];
   return cache;
@@ -206,9 +214,10 @@ tbody.addEventListener('click', async (e)=>{
     const ok = confirm(`¿Confirmas marcar este permiso como ${act}?`);
     if (!ok) return;
 
-    const res = await fetch(`${API_PERMISOS}/${id}/estado`, {
+    const res = await fetch(`${API_PERMISOS}/${encodeURIComponent(id)}/estado`, {
       method:'PATCH',
       headers:{ 'Content-Type':'application/json' },
+      credentials:'include',
       body: JSON.stringify({ estado: act })
     });
     const json = await res.json();
@@ -223,7 +232,10 @@ tbody.addEventListener('click', async (e)=>{
     const ok = confirm('¿Eliminar este permiso?');
     if (!ok) return;
 
-    const res = await fetch(`${API_PERMISOS}/${id}`, { method:'DELETE' });
+    const res = await fetch(`${API_PERMISOS}/${encodeURIComponent(id)}`, {
+      method:'DELETE',
+      credentials:'include'
+    });
     const json = await res.json();
     if (!json.ok) return alert(json.message || 'No se pudo eliminar');
     await load();

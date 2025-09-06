@@ -1,8 +1,9 @@
-/* ========= Endpoints existentes ========= */
-const API_DOC_MIN     = '/api/docentes/min';      // para el combo
-const API_CARNETS     = '/api/carnets';           // ?q=
-const API_ASISTENCIAS = '/api/asistencias';       // ?date=YYYY-MM-DD
-const API_PERMISOS    = '/api/permisos';          // ?from=YYYY-MM-DD&to=YYYY-MM-DD&docente=COD
+/* ========= Base y endpoints ========= */
+const API_BASE        = (window.API_BASE || '').replace(/\/$/, '');
+const API_DOC_MIN     = `${API_BASE}/api/docentes/min`;      // para el combo
+const API_CARNETS     = `${API_BASE}/api/carnets`;           // ?q=
+const API_ASISTENCIAS = `${API_BASE}/api/asistencias`;       // ?date=YYYY-MM-DD
+const API_PERMISOS    = `${API_BASE}/api/permisos`;          // ?from=YYYY-MM-DD&to=YYYY-MM-DD&docente=COD
 
 /* ========= Helpers ========= */
 const $ = (s, r=document)=>r.querySelector(s);
@@ -30,11 +31,14 @@ const take = (...vals)=>{
   }
   return '';
 };
+
+// <-- AHORA siempre enviamos cookies
 async function fetchJSON(url){
-  const r = await fetch(url);
+  const r = await fetch(url, { credentials: 'include' });
   if(!r.ok) return [];
   return await r.json();
 }
+
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 // SIN desfase por zona horaria
 function ddmmyyParts(iso){
@@ -72,7 +76,6 @@ async function autoFillDpiFromDocente(){
   try { code = JSON.parse(val).code || ''; } catch(_) {}
   if(!code) return;
 
-  // Asegura cache y coloca el DPI si existe
   if(!DPI_CACHE.size) await buildDpiCache();
 
   const dpi = DPI_CACHE.get(code);
@@ -123,7 +126,6 @@ function hookExports(cardId, tableId, title, baseName){
 
 /* ========= Exportación de la Solicitud (div A4) ========= */
 async function exportSolicitud(type){
-  // Asegura que haya contenido
   if ($('#solicitudPreview').hidden) previsualizarSolicitud();
 
   const card = $('#solicitudPreview');
@@ -156,7 +158,6 @@ async function exportSolicitud(type){
   try {
     await captureAndDownload();
   } catch (err) {
-    // Si el canvas quedó "tainted" por el logo, reintenta ocultándolo
     const prevDisplay = logo ? logo.style.display : null;
     if (logo) logo.style.display = 'none';
     try { await captureAndDownload(); }
@@ -271,7 +272,6 @@ async function consultarPermisos(){
 
 /* ========= Solicitud de Permiso (previsualizar) ========= */
 function previsualizarSolicitud(){
-  // Datos del formulario
   const docenteSel = $('#solDocente').value ? JSON.parse($('#solDocente').value) : {name:''};
   const docente = docenteSel.name || '';
   const dpi     = $('#solDpi').value.trim();
@@ -287,7 +287,6 @@ function previsualizarSolicitud(){
   const coord   = $('#autCoord').value.trim();
   const director= $('#autDirector').value.trim();
 
-  // Partes de fechas (sin desfase)
   const s = ddmmyyParts(fechaSol);
   const a = ddmmyyParts(autFec);
   const d1 = ddmmyyParts(desde); const d2 = ddmmyyParts(hasta);
@@ -295,12 +294,10 @@ function previsualizarSolicitud(){
       ? `${d1.d}-${d2.d} de ${d2.m}`
       : (desde ? `${d1.d} de ${d1.m}` : '');
 
-  // Marcas (X) según forma seleccionada
   const mark1 = forma.startsWith('CON GOCE DE SALARIO') ? 'X' : ' ';
   const mark2 = forma.startsWith('CON GOCE DE MEDIO')   ? 'X' : ' ';
   const mark3 = forma.startsWith('SIN GOCE')            ? 'X' : ' ';
 
-  // Volcado en la hoja (todas las apariciones)
   fillAll({
     'docente' : docente,
     'dpi'     : dpi,
@@ -319,13 +316,11 @@ function previsualizarSolicitud(){
     'director': director || 'Director'
   });
 
-  // Mostrar previsualización
   $('#solicitudPreview').hidden = false;
 }
 
 /* ========= INIT ========= */
 (function init(){
-  // Defaults
   $('#asisFecha').value = new Date().toISOString().slice(0,10);
   $('#perMes').value    = new Date().toISOString().slice(0,7);
   $('#solFecha').value  = new Date().toISOString().slice(0,10);
@@ -333,20 +328,16 @@ function previsualizarSolicitud(){
   $('#autHasta').value  = new Date().toISOString().slice(0,10);
   $('#autFecha').value  = new Date().toISOString().slice(0,10);
 
-  // Consultas
   $('#btnCarnetsConsultar').addEventListener('click', consultarCarnets);
   $('#btnAsisConsultar').addEventListener('click', consultarAsistencias);
   $('#btnPerConsultar').addEventListener('click', consultarPermisos);
 
-  // Exports tablas
   hookExports('cardCarnets',    'tblCarnets',    'Carnets de Docentes',        'carnets_docentes');
   hookExports('cardAsistencia', 'tblAsistencias','Asistencia Diaria Docentes', 'asistencia_diaria');
   hookExports('cardPermisos',   'tblPermisos',   'Permisos por Mes',           'permisos_por_mes');
 
-  // Previsualizar solicitud
   $('#btnPrevisualizar').addEventListener('click', previsualizarSolicitud);
 
-  // Export de la hoja A4 (Solicitud)
   document.querySelectorAll('#cardSolicitud .btn-outline[data-export]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const type = btn.dataset.export; // "img" | "pdf"
@@ -354,15 +345,12 @@ function previsualizarSolicitud(){
     });
   });
 
-  // Autocompletar DPI al cambiar docente
   $('#solDocente').addEventListener('change', autoFillDpiFromDocente);
 
-  // Cargar combos + datos iniciales
   cargarDocentesMin();
   consultarCarnets();
   consultarAsistencias();
   consultarPermisos();
 
-  // Construye el cache de DPI (inmediato)
   buildDpiCache();
 })();

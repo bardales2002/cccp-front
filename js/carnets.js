@@ -1,5 +1,9 @@
-const API_CARNETS  = '/api/carnets';
-const API_DOCENTES = '/api/docentes/min';
+// js/carnets.js
+
+// Base (desde js/config.js)
+const API_BASE      = (window.API_BASE || '').replace(/\/$/, '');
+const CARNETS_API   = `${API_BASE}/api/carnets`;
+const DOCS_MIN_API  = `${API_BASE}/api/docentes/min`;
 
 const selDocente = document.getElementById('docente_codigo');
 const dpiInput   = document.getElementById('dpi');
@@ -20,9 +24,7 @@ let cache = [];
 
 /* ========= Limpia el input DPI mientras se escribe ========= */
 dpiInput.addEventListener('input', () => {
-  // Deja solo dígitos y limita a 13
   dpiInput.value = dpiInput.value.replace(/\D/g, '').slice(0, 13);
-  // borra mensajes de validez custom si los hubiera
   dpiInput.setCustomValidity('');
 });
 
@@ -84,7 +86,7 @@ async function printSvg(svgEl){
 
 /* ========= Cargar docentes para el select ========= */
 async function loadDocentes(){
-  const res = await fetch(API_DOCENTES);
+  const res = await fetch(DOCS_MIN_API, { credentials: 'include' });
   const list = await res.json();
   selDocente.innerHTML = '<option value="">Seleccione…</option>';
   list.forEach(d=>{
@@ -97,8 +99,11 @@ async function loadDocentes(){
 
 /* ========= CRUD Carnets ========= */
 async function fetchCarnets(q=''){
-  const url = q ? `${API_CARNETS}?search=${encodeURIComponent(q)}` : API_CARNETS;
-  const res = await fetch(url);
+  const url = q
+    ? `${CARNETS_API}?search=${encodeURIComponent(q)}`
+    : CARNETS_API;
+
+  const res = await fetch(url, { credentials: 'include' });
   const data = await res.json();
   cache = data;
   return data;
@@ -137,7 +142,7 @@ async function load(q=''){
 form.addEventListener('submit', async (e)=>{
   e.preventDefault();
   const docente_codigo = selDocente.value;
-  const dpi = dpiInput.value.replace(/\D/g, ''); // <-- sanitiza
+  const dpi = dpiInput.value.replace(/\D/g, '');
 
   if(!docente_codigo) {
     alert('Seleccione un docente');
@@ -151,9 +156,10 @@ form.addEventListener('submit', async (e)=>{
     dpiInput.setCustomValidity('');
   }
 
-  const res = await fetch(API_CARNETS, {
+  const res = await fetch(CARNETS_API, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
+    credentials:'include',
     body: JSON.stringify({ docente_codigo, dpi })
   });
   const json = await res.json();
@@ -198,7 +204,10 @@ tbody.addEventListener('click', async (e)=>{
   if(btnDel){
     const id = btnDel.dataset.id;
     if(confirm('¿Eliminar este carnet?')){
-      const res = await fetch(`${API_CARNETS}/${id}`, { method:'DELETE' });
+      const res = await fetch(`${CARNETS_API}/${id}`, {
+        method:'DELETE',
+        credentials:'include'
+      });
       const json = await res.json();
       if(!json.ok) return alert(json.message || 'No se pudo eliminar');
       await load(buscar.value);
@@ -218,9 +227,7 @@ tbody.addEventListener('click', async (e)=>{
   }
 });
 
-buscar.addEventListener('input', ()=>{
-  load(buscar.value);
-});
+buscar.addEventListener('input', ()=> load(buscar.value));
 
 /* ========= Exportar PDF/Excel del listado ========= */
 btnPdf?.addEventListener('click', ()=>{

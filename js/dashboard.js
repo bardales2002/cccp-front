@@ -1,3 +1,5 @@
+// js/dashboard.js
+
 /* ----------------- Carrusel ----------------- */
 let currentIndex = 0;
 const images = document.querySelectorAll('.image-slider img');
@@ -34,9 +36,9 @@ setInterval(()=>{
 showSlide(0);
 
 /* ----------------- Sesión: nombre/rol/correo + logout ----------------- */
-
+const API_BASE   = (window.API_BASE || '').replace(/\/$/, '');
 const BADGE_ID   = 'user-badge';
-const LOGOUT_URL = '/api/logout';
+const LOGOUT_URL = `${API_BASE}/api/logout`;
 
 // Toma el primer string no vacío
 function take(...vals){
@@ -49,16 +51,19 @@ function take(...vals){
   return '';
 }
 
-// Intenta varios endpoints posibles para /me
+// Intenta varios endpoints posibles para /me (prefijados con API_BASE)
 async function fetchMe(){
-  const candidates = ['/api/me', '/me', '/api/session', '/session'];
+  const candidates = [
+    `${API_BASE}/api/me`,
+    `${API_BASE}/me`,
+    `${API_BASE}/api/session`,
+    `${API_BASE}/session`
+  ];
   for (const url of candidates){
     try{
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) continue;
       const data = await res.json();
-
-      // Muchos backends devuelven { ok:true, user:{...} }
       const user = (data?.user ?? data) || {};
       if (Object.keys(user).length) return user;
     }catch(_){}
@@ -70,7 +75,6 @@ async function renderUserBadge(){
   const badge = document.getElementById(BADGE_ID);
   if (!badge) return;
 
-  // placeholder mientras llega la info
   badge.innerHTML = `<span class="usr-ico">👤</span> (user) | correo`;
 
   const u = await fetchMe();
@@ -80,18 +84,13 @@ async function renderUserBadge(){
     return;
   }
 
-  // Normaliza
   const first = take(u.name, u.nombres, u.first_name);
   const last  = take(u.apellidos, u.last_name);
   const name  = take(`${first} ${last}`.trim(), first);
   const email = take(u.email, u.correo, u.username);
   const role  = take(u.role, u.rol, 'usuario');
 
-  // Construye el texto:
-  // - si hay nombre => "Nombre Apellido (rol) | correo"
-  // - si no hay nombre => "(rol) correo" (sin '|')
   let label = '';
-
   if (name && role && email){
     label = `${name} (${role}) | ${email}`;
   } else if (name && role){
@@ -99,7 +98,6 @@ async function renderUserBadge(){
   } else if (name && email){
     label = `${name} | ${email}`;
   } else if (role && email){
-    // <- esto es lo que quieres ver mínimo: (rol) correo
     label = `(${role}) ${email}`;
   } else if (email){
     label = email;

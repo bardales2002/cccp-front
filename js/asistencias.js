@@ -1,5 +1,10 @@
-const API = '/api/asistencias';
+// js/asistencias.js
 
+// 1) Base de la API (viene de js/config.js)
+const API_BASE = (window.API_BASE || '').replace(/\/$/, '');
+const ASIST_API = `${API_BASE}/api/asistencias`;
+
+// 2) Elementos del DOM
 const frmScan = document.getElementById('frmScan');
 const scanInp = document.getElementById('scan');
 const lastBox  = document.getElementById('lastEvent');
@@ -40,10 +45,10 @@ function showLast(message, kind='ok'){
   lastBox.classList.remove('hidden');
 }
 
-/* ==== NUEVO: formatear fecha a DD-MM-YYYY para UI y exportaciones ==== */
+/* ==== Formatear fecha a DD-MM-YYYY para UI y exportaciones ==== */
 function fmtFechaDDMMYYYY(s){
   if (!s) return '';
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s); // extrae YYYY-MM-DD de “YYYY-MM-DD” o “YYYY-MM-DDTHH…”
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s); // extrae YYYY-MM-DD
   return m ? `${m[3]}-${m[2]}-${m[1]}` : s;
 }
 
@@ -63,9 +68,10 @@ frmScan.addEventListener('submit', async (e)=>{
   }
 
   try {
-    const res = await fetch(`${API}/scan`, {
+    const res = await fetch(`${ASIST_API}/scan`, {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{ 'Content-Type':'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ dpi })
     });
     const json = await res.json();
@@ -101,7 +107,9 @@ async function fetchList(){
   }
   if (buscar.value.trim()) params.set('q', buscar.value.trim());
 
-  const res = await fetch(`${API}?${params.toString()}`);
+  const res = await fetch(`${ASIST_API}?${params.toString()}`, {
+    credentials: 'include'
+  });
   const rows = await res.json();
   cache = rows;
   return rows;
@@ -134,7 +142,10 @@ tbody.addEventListener('click', async (e)=>{
   if (!btn) return;
   const id = btn.dataset.id;
   if (confirm('¿Eliminar este registro de asistencia?')) {
-    const res = await fetch(`${API}/${id}`, { method:'DELETE' });
+    const res = await fetch(`${ASIST_API}/${id}`, {
+      method:'DELETE',
+      credentials:'include'
+    });
     const json = await res.json();
     if (!json.ok) return alert(json.message || 'No se pudo eliminar');
     await load();
